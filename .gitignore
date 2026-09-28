@@ -1,0 +1,11 @@
+build/
+install/
+log/
+.colcon*
+
+__pycache__/
+*.pyc
+.vscode/
+*.tgz
+*.log
+ 1b05012d0933132086681a6793dad6ae76181412
