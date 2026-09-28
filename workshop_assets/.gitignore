@@ -1,9 +1,0 @@
-# Ignora arquivos de build e instalados
-build/
-install/
-log/
-.colcon/
-.ros/
-*.pyc
-__pycache__/
-
