@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'tigo_navegacao'
+package_name = 'tigo_base'
 
 setup(
     name=package_name,

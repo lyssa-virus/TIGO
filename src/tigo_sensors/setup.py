@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'tigo_driver'
+package_name = 'tigo_sensors'
 
 setup(
     name=package_name,
