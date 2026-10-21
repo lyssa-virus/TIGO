@@ -1,7 +1,7 @@
 # Tigo
 
 Robô mecanum. Workspace ROS 2 Humble (Ubuntu 22.04).
-Hardware: driver Möbius, Arduino Mega 2560, Raspberry Pi, lidar, câmera Nuwa HP60C.
+Hardware: driver Moebius, Arduino Mega 2560, Raspberry Pi, lidar, câmera Nuwa HP60C.
 
 ## Pacotes e onde rodam
 - Na Pi: tigo_base, tigo_sensors, tigo_bringup
