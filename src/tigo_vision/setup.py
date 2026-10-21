@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'tigo_sensores'
+package_name = 'tigo_vision'
 
 setup(
     name=package_name,

@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'tigo_percepcao'
+package_name = 'tigo_control'
 
 setup(
     name=package_name,
