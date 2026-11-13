@@ -66,30 +66,58 @@ const float TICKS_PER_REV = 1319.1; // Ticks por volta completa da roda
 const float RAD_POR_TICK = (2.0 * 3.14159265359) / TICKS_PER_REV;
 
 // =====================================================
-// 4. PARÂMETROS DE CONTROLE PID
+// 4. PARÂMETROS DE CONTROLE PID E ANTI-WINDUP
 // =====================================================
 // Ganhos padrão (ajustáveis nos testes práticos)
 float Kp = 4.0;
 float Ki = 10.0;
 float Kd = 0.02;
 
-const int PWM_MIN = 20; // Zona morta mínima para movimentar os motores
-const float LIMITE_INTEGRAL = 100.0; // Anti-windup
+const int PWM_MIN = 20;               // Zona morta mínima para movimentar os motores
+const float PWM_MAX = 255.0;          // Saturação máxima do atuador (PWM)
+
+// Parâmetros de Anti-Windup (inspirados nas boas práticas de controle do projeto)
+const float MAX_I_PWM = 80.0;         // Teto máximo de contribuição da integral no PWM
+const float DEADBAND_VEL = 0.10;       // Zona morta de velocidade (rad/s) para filtrar ruído de encoder
 
 struct PIDMotor {
     float integral;
     float erroAnterior;
 
-    float calcular(float setpoint, float medido, float dt) {
+    float calcular(float setpoint, float medido, float dt, float ff = 0.0) {
+        // Se a roda deve ficar parada, reseta o acumulador integral para evitar torque residual
+        if (abs(setpoint) < 0.01) {
+            reset();
+            return 0.0;
+        }
+
         float erro = setpoint - medido;
+
+        // Camada 1 de Anti-Windup: Deadband (Zona Morta)
+        // Evita que variações mínimas de ticks fiquem alimentando o integrador em regime permanente
+        if (abs(erro) < DEADBAND_VEL) {
+            erro = 0.0;
+        }
 
         // Proporcional
         float p = Kp * erro;
 
-        // Integral com anti-windup
-        integral += erro * dt;
-        integral = constrain(integral, -LIMITE_INTEGRAL, LIMITE_INTEGRAL);
-        float i = Ki * integral;
+        // Camada 2 de Anti-Windup: Clamping do Integrador proporcional ao PWM
+        float limiteIntegral = (Ki > 0.0001) ? (MAX_I_PWM / Ki) : 0.0;
+
+        // Camada 3 de Anti-Windup: Clamping Condicional (Saturação de Saída)
+        // Se a combinação de Feedforward + P já saturou o PWM e o erro empurra no mesmo sentido,
+        // congela a integração para impedir que o acumulador "enrole" além do limite físico.
+        float saidaPrevia = ff + p;
+        bool saturadoPositivo = (saidaPrevia >= PWM_MAX && erro > 0.0);
+        bool saturadoNegativo = (saidaPrevia <= -PWM_MAX && erro < 0.0);
+
+        if (!saturadoPositivo && !saturadoNegativo) {
+            integral += erro * dt;
+            integral = constrain(integral, -limiteIntegral, limiteIntegral);
+        }
+
+        float i = constrain(Ki * integral, -MAX_I_PWM, MAX_I_PWM);
 
         // Derivativo
         float d = 0.0;
@@ -272,11 +300,11 @@ void loop() {
             float ff_rl = (w_rl_alvo / W_MAX_RODA) * 255.0;
             float ff_rr = (w_rr_alvo / W_MAX_RODA) * 255.0;
 
-            // PID corrige o erro entre velocidade alvo e medida
-            float pid_fl = pidFL.calcular(w_fl_alvo, w_fl_medido, dt);
-            float pid_fr = pidFR.calcular(w_fr_alvo, w_fr_medido, dt);
-            float pid_rl = pidRL.calcular(w_rl_alvo, w_rl_medido, dt);
-            float pid_rr = pidRR.calcular(w_rr_alvo, w_rr_medido, dt);
+            // PID corrige o erro entre velocidade alvo e medida (com Anti-Windup)
+            float pid_fl = pidFL.calcular(w_fl_alvo, w_fl_medido, dt, ff_fl);
+            float pid_fr = pidFR.calcular(w_fr_alvo, w_fr_medido, dt, ff_fr);
+            float pid_rl = pidRL.calcular(w_rl_alvo, w_rl_medido, dt, ff_rl);
+            float pid_rr = pidRR.calcular(w_rr_alvo, w_rr_medido, dt, ff_rr);
 
             // Comando final = Feedforward + Correção PID
             float cmd_fl = constrain(ff_fl + pid_fl, -255.0, 255.0);
