@@ -4,14 +4,14 @@
 // 1. PINAGEM DOS MOTORES - ROBÔ TIGO (LADO DIREITO INVERTIDO)
 // =====================================================
 // Roda Dianteira Esquerda (Front Left - FL)
-const uint8_t PWM_FL  = 12;
-const uint8_t DIR1_FL = 34;
-const uint8_t DIR2_FL = 35;
+const uint8_t PWM_FL  = 8;
+const uint8_t DIR1_FL = 37;
+const uint8_t DIR2_FL = 36;
 
 // Roda Traseira Esquerda (Rear Left - RL)
-const uint8_t PWM_RL  = 8;
-const uint8_t DIR1_RL = 37;
-const uint8_t DIR2_RL = 36;
+const uint8_t PWM_RL  = 12;
+const uint8_t DIR1_RL = 34;
+const uint8_t DIR2_RL = 35;
 
 // Roda Dianteira Direita (Front Right - FR) - Pinos DIR invertidos
 const uint8_t PWM_FR  = 6;
@@ -28,11 +28,11 @@ const uint8_t DIR2_RR = A4;
 // =====================================================
 // O pino A de cada encoder deve ficar em um pino de interrupção externa do Mega:
 // Pinos de interrupção no Mega: 2 (INT4), 3 (INT5), 18 (INT3), 19 (INT2)
-const uint8_t ENC_A_FL = 18;
-const uint8_t ENC_B_FL = 31;
+const uint8_t ENC_A_FL = 19;
+const uint8_t ENC_B_FL = 38;
 
-const uint8_t ENC_A_RL = 19;
-const uint8_t ENC_B_RL = 38;
+const uint8_t ENC_A_RL = 18;
+const uint8_t ENC_B_RL = 31;
 
 const uint8_t ENC_A_FR = 3;
 const uint8_t ENC_B_FR = 49;
@@ -48,10 +48,10 @@ Encoder encRR(ENC_A_RR, ENC_B_RR);
 
 // Inversões de sentido dos encoders:
 // Se uma roda ao girar para frente der contagem negativa, altere o sinal correspondente (-1 ou 1)
-const int8_t ENC_DIR_FL = 1;
-const int8_t ENC_DIR_FR = -1;  // Lado direito fisicamente invertido
-const int8_t ENC_DIR_RL = 1;
-const int8_t ENC_DIR_RR = -1;  // Lado direito fisicamente invertido
+const int8_t ENC_DIR_FL = -1;
+const int8_t ENC_DIR_FR = 1;   // Lado direito fisicamente invertido em relação ao esquerdo
+const int8_t ENC_DIR_RL = -1;
+const int8_t ENC_DIR_RR = 1;   // Lado direito fisicamente invertido em relação ao esquerdo
 
 // =====================================================
 // 3. PARÂMETROS GEOMÉTRICOS E MECÂNICOS DO CHASSI
