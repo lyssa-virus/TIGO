@@ -7,3 +7,6 @@ __pycache__/
 *.db3
 *.mcap
 .vscode/
+node_modules/
+dist/
+.vite/

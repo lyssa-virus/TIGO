@@ -241,6 +241,22 @@ void loop() {
                 wz = linha.substring(v3 + 1).toFloat();
                 tempoUltimoComando = millis();
             }
+        } else if (linha.startsWith("G,")) {
+            // Atualização dinâmica dos ganhos PID: "G,kp,ki,kd\n"
+            int g1 = linha.indexOf(',');
+            int g2 = linha.indexOf(',', g1 + 1);
+            int g3 = linha.indexOf(',', g2 + 1);
+
+            if (g1 > 0 && g2 > 0 && g3 > 0) {
+                float novoKp = linha.substring(g1 + 1, g2).toFloat();
+                float novoKi = linha.substring(g2 + 1, g3).toFloat();
+                float novoKd = linha.substring(g3 + 1).toFloat();
+                if (novoKp >= 0.0 && novoKi >= 0.0 && novoKd >= 0.0) {
+                    Kp = novoKp;
+                    Ki = novoKi;
+                    Kd = novoKd;
+                }
+            }
         } else if (linha.startsWith("S")) {
             // Comando de parada de segurança
             vx = 0.0;
@@ -290,15 +306,18 @@ void loop() {
         float w_fl_alvo, w_fr_alvo, w_rl_alvo, w_rr_alvo;
         calcularCinematicaInversa(vx, vy, wz, w_fl_alvo, w_fr_alvo, w_rl_alvo, w_rr_alvo);
 
+        float ff_fl = 0.0, ff_fr = 0.0, ff_rl = 0.0, ff_rr = 0.0;
+        float cmd_fl = 0.0, cmd_fr = 0.0, cmd_rl = 0.0, cmd_rr = 0.0;
+
         // Se o robô deve ficar parado
         if (abs(vx) < 0.001 && abs(vy) < 0.001 && abs(wz) < 0.001) {
             pararMotores();
         } else {
             // Feedforward: PWM teórico direto a partir da velocidade desejada
-            float ff_fl = (w_fl_alvo / W_MAX_RODA) * 255.0;
-            float ff_fr = (w_fr_alvo / W_MAX_RODA) * 255.0;
-            float ff_rl = (w_rl_alvo / W_MAX_RODA) * 255.0;
-            float ff_rr = (w_rr_alvo / W_MAX_RODA) * 255.0;
+            ff_fl = (w_fl_alvo / W_MAX_RODA) * 255.0;
+            ff_fr = (w_fr_alvo / W_MAX_RODA) * 255.0;
+            ff_rl = (w_rl_alvo / W_MAX_RODA) * 255.0;
+            ff_rr = (w_rr_alvo / W_MAX_RODA) * 255.0;
 
             // PID corrige o erro entre velocidade alvo e medida (com Anti-Windup)
             float pid_fl = pidFL.calcular(w_fl_alvo, w_fl_medido, dt, ff_fl);
@@ -307,10 +326,10 @@ void loop() {
             float pid_rr = pidRR.calcular(w_rr_alvo, w_rr_medido, dt, ff_rr);
 
             // Comando final = Feedforward + Correção PID
-            float cmd_fl = constrain(ff_fl + pid_fl, -255.0, 255.0);
-            float cmd_fr = constrain(ff_fr + pid_fr, -255.0, 255.0);
-            float cmd_rl = constrain(ff_rl + pid_rl, -255.0, 255.0);
-            float cmd_rr = constrain(ff_rr + pid_rr, -255.0, 255.0);
+            cmd_fl = constrain(ff_fl + pid_fl, -255.0, 255.0);
+            cmd_fr = constrain(ff_fr + pid_fr, -255.0, 255.0);
+            cmd_rl = constrain(ff_rl + pid_rl, -255.0, 255.0);
+            cmd_rr = constrain(ff_rr + pid_rr, -255.0, 255.0);
 
             acionarMotor(PWM_FL, DIR1_FL, DIR2_FL, cmd_fl);
             acionarMotor(PWM_FR, DIR1_FR, DIR2_FR, cmd_fr);
@@ -318,8 +337,8 @@ void loop() {
             acionarMotor(PWM_RR, DIR1_RR, DIR2_RR, cmd_rr);
         }
 
-        // --- 4. ENVIO DOS ENCODERS PARA O ROS ---
-        // Formato esperado pelo nó MecanumSerialBridge: "E,fl,fr,rl,rr\n"
+        // --- 4. ENVIO DOS ENCODERS E TELEMETRIA PID PARA O ROS ---
+        // Formato encoders: "E,fl,fr,rl,rr\n"
         Serial.print("E,");
         Serial.print(ticksFL);
         Serial.print(",");
@@ -328,5 +347,27 @@ void loop() {
         Serial.print(ticksRL);
         Serial.print(",");
         Serial.println(ticksRR);
+
+        // Formato PID: "P,kp,ki,kd,spFL,pvFL,ffFL,cmdFL,spFR,pvFR,ffFR,cmdFR,spRL,pvRL,ffRL,cmdRL,spRR,pvRR,ffRR,cmdRR\n"
+        Serial.print("P,");
+        Serial.print(Kp, 3); Serial.print(",");
+        Serial.print(Ki, 3); Serial.print(",");
+        Serial.print(Kd, 4); Serial.print(",");
+        Serial.print(w_fl_alvo, 2); Serial.print(",");
+        Serial.print(w_fl_medido, 2); Serial.print(",");
+        Serial.print(ff_fl, 1); Serial.print(",");
+        Serial.print(cmd_fl, 1); Serial.print(",");
+        Serial.print(w_fr_alvo, 2); Serial.print(",");
+        Serial.print(w_fr_medido, 2); Serial.print(",");
+        Serial.print(ff_fr, 1); Serial.print(",");
+        Serial.print(cmd_fr, 1); Serial.print(",");
+        Serial.print(w_rl_alvo, 2); Serial.print(",");
+        Serial.print(w_rl_medido, 2); Serial.print(",");
+        Serial.print(ff_rl, 1); Serial.print(",");
+        Serial.print(cmd_rl, 1); Serial.print(",");
+        Serial.print(w_rr_alvo, 2); Serial.print(",");
+        Serial.print(w_rr_medido, 2); Serial.print(",");
+        Serial.print(ff_rr, 1); Serial.print(",");
+        Serial.println(cmd_rr, 1);
     }
 }
